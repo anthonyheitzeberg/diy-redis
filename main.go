@@ -24,14 +24,13 @@ func main() {
 		return
 	}
 
-	defer conn.Close() // close connection once finished
+	defer conn.Close()
 
-	// create loop to receive commands from client and respond to them
 	for {
 		buf := make([]byte, 1024)
 
-		// read messages from client
-		_, err := conn.Read(buf)
+		// read message from client
+		_, err = conn.Read(buf)
 		if err != nil {
 			if err == io.EOF {
 				break
