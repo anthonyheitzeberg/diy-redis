@@ -47,17 +47,15 @@ func (r *Resp) readLine() (line []byte, n int, err error) {
 }
 
 func (r *Resp) readInteger() (x int, n int, err error) {
-	for {
-		line, n, err := r.readLine()
-		if err != nil {
-			return 0, 0, err
-		}
-		i64, err := strconv.ParseInt(string(line), 10, 64)
-		if err != nil {
-			return 0, n, err
-		}
-		return int(i64), n, nil
+	line, n, err := r.readLine()
+	if err != nil {
+		return 0, 0, err
 	}
+	i64, err := strconv.ParseInt(string(line), 10, 64)
+	if err != nil {
+		return 0, n, err
+	}
+	return int(i64), n, nil
 }
 
 func (r *Resp) Read() (Value, error) {
@@ -105,6 +103,7 @@ func (r *Resp) readArray() (Value, error) {
 
 func (r *Resp) readBulk() (Value, error) {
 	v := Value{}
+
 	v.typ = "bulk"
 
 	len, _, err := r.readInteger()
@@ -115,6 +114,7 @@ func (r *Resp) readBulk() (Value, error) {
 	bulk := make([]byte, len)
 
 	r.reader.Read(bulk)
+
 	v.bulk = string(bulk)
 
 	// Read the trailing CRLF
@@ -123,15 +123,15 @@ func (r *Resp) readBulk() (Value, error) {
 	return v, nil
 }
 
-// Method to turn marshal value into byte
+// Marshal Value to bytes
 func (v Value) Marshal() []byte {
 	switch v.typ {
 	case "array":
-		return v.marshallArray()
+		return v.marshalArray()
 	case "bulk":
-		return v.marshallBulk()
+		return v.marshalBulk()
 	case "string":
-		return v.marshallString()
+		return v.marshalString()
 	case "null":
 		return v.marshallNull()
 	case "error":
@@ -141,7 +141,7 @@ func (v Value) Marshal() []byte {
 	}
 }
 
-func (v Value) marshallString() []byte {
+func (v Value) marshalString() []byte {
 	var bytes []byte
 	bytes = append(bytes, STRING)
 	bytes = append(bytes, v.str...)
@@ -150,17 +150,18 @@ func (v Value) marshallString() []byte {
 	return bytes
 }
 
-func (v Value) marshallBulk() []byte {
+func (v Value) marshalBulk() []byte {
 	var bytes []byte
 	bytes = append(bytes, BULK)
 	bytes = append(bytes, strconv.Itoa(len(v.bulk))...)
 	bytes = append(bytes, '\r', '\n')
 	bytes = append(bytes, v.bulk...)
+	bytes = append(bytes, '\r', '\n')
 
 	return bytes
 }
 
-func (v Value) marshallArray() []byte {
+func (v Value) marshalArray() []byte {
 	len := len(v.array)
 	var bytes []byte
 	bytes = append(bytes, ARRAY)
