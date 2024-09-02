@@ -16,13 +16,33 @@ func main() {
 		return
 	}
 
+	aof, err := NewAof("database.aof")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer aof.Close()
+
+	// Data persistence, fetch data from local database AOF
+	aof.Read(func(value Value) {
+		command := strings.ToUpper(value.array[0].bulk)
+		args := value.array[1:]
+
+		handler, ok := Handlers[command]
+		if !ok {
+			fmt.Println("Invalid command: ", command)
+			return
+		}
+
+		handler(args)
+	})
+
 	// Start listening for connections
 	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
 	defer conn.Close()
 
 	for {
@@ -53,6 +73,10 @@ func main() {
 			fmt.Println("Invlid command: ", command)
 			writer.Write(Value{typ: "string", str: ""})
 			continue
+		}
+
+		if command == "SET" || command == "HSET" {
+			aof.Write(value)
 		}
 
 		result := handler(args)
